@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "OpenAPI Swagger Specs",
     "Agile Product Owner"
   ],
-  authors: [{ name: "Alex Sterling" }],
+  authors: [{ name: "Mohammed Zaid" }],
 };
 
 export default function RootLayout({
