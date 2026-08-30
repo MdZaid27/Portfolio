@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CaseStudy } from "@/data/portfolioData";
 import {
   X,
@@ -30,6 +30,11 @@ export default function CaseStudyModal({ project, onClose }: CaseStudyModalProps
     "overview" | "elicitation" | "uml" | "contracts" | "bdd" | "impact"
   >("overview");
   const [copied, setCopied] = useState(false);
+
+  // Reset to first tab whenever a different project is opened
+  useEffect(() => {
+    setActiveTab("overview");
+  }, [project?.id]);
 
   if (!project) return null;
 
