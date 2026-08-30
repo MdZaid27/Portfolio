@@ -352,6 +352,138 @@ ORDER BY (created_at, event_type);`,
       "Infrastructure Cost Reduction: Exploiting ClickHouse's columnar compression reduced analytical storage footprint by 5-10x compared to original PostgreSQL tables.",
       "Operational Stability: Cleanly separating OLTP and OLAP workloads prevented slow analytical queries from locking critical transactional tables."
     ]
+  },
+  {
+    id: "manipal-patient-portal",
+    title: "Enterprise Patient Portal & Appointment Booking Engine",
+    subtitle: "Real-Time Doctor Scheduling & Concurrency-Safe Appointment System",
+    client: "Manipal Hospitals (via Appiness Interactive)",
+    role: "IT Business Analyst (Software Developer Web)",
+    methodology: "Agile / Scrum",
+    techStack: ["Requirements Gathering", "Functional Specifications", "REST APIs", "JSON Contracts", "BDD Gherkin", "React.js", "Jira", "Confluence", "Figma"],
+    domain: "Healthcare & Digital Patient Experience",
+    featured: true,
+    
+    overview: "Manipal Hospitals required a modernized, high-performance digital patient portal to manage a massive volume of daily outpatient consultations. The existing workflow relied heavily on manual call-center bookings, resulting in high patient friction, scheduling conflicts, and limited visibility into doctor availability across multiple hospital branches.",
+    businessProblem: "The objective was to architect and deliver a responsive web application that allowed patients to discover specialists, view real-time calendar availability, and book confirmed appointments autonomously — while enforcing strict healthcare concurrency rules to prevent double-booking collisions.",
+    myRole: "Acting as a hybrid Business Analyst and Web Developer, my role involved eliciting strict healthcare scheduling rules, managing the Agile backlog, authoring comprehensive functional specifications, and designing the API data contracts to power the frontend interface.",
+    
+    elicitationDetails: "Healthcare scheduling requires strict adherence to business rules regarding doctor availability, slot durations, and multi-location management. Authored comprehensive functional specifications to govern the booking engine.",
+    coreConstraints: [
+      {
+        title: "Dynamic Slot Generation",
+        description: "Doctor availability had to be calculated in real-time, factoring in emergency block-outs and varying consultation durations (e.g., 15 mins for general, 30 mins for specialists).",
+        icon: "Clock"
+      },
+      {
+        title: "Multi-Branch Mapping",
+        description: "Patients needed to filter doctors by specific hospital locations, requiring a strict relational mapping between Doctor_ID and Facility_ID.",
+        icon: "MapPin"
+      },
+      {
+        title: "Concurrency & Session Lock",
+        description: "Designed the requirement for a 10-minute temporary lock on an appointment slot once a patient initiated checkout to prevent double-booking collisions.",
+        icon: "ShieldCheck"
+      }
+    ],
+    
+    architectureOverview: "Mapped the end-to-end appointment booking flow across 3 distinct layers — patient-facing UI, scheduling middleware, and hospital backend systems.",
+    umlLanes: [
+      {
+        lane: "Lane 1: Patient (Web Portal)",
+        responsibilities: [
+          "Searches for specialists by department, location, and availability",
+          "Selects an available time slot and initiates appointment checkout",
+          "Receives booking confirmation with reference number"
+        ]
+      },
+      {
+        lane: "Lane 2: Scheduling Middleware (REST API)",
+        responsibilities: [
+          "Calculates real-time slot availability from doctor calendar data",
+          "Applies 10-minute temporary session lock on selected slot",
+          "Validates patient insurance eligibility and appointment type"
+        ]
+      },
+      {
+        lane: "Lane 3: Hospital Backend (Database)",
+        responsibilities: [
+          "Stores doctor schedules with facility-level granularity",
+          "Manages concurrent slot state (AVAILABLE / LOCKED / BOOKED)",
+          "Triggers SMS/email confirmation upon successful booking"
+        ]
+      }
+    ],
+    
+    contractTitle: "Technical API Contract: Appointment Booking Payload",
+    contractType: "json",
+    contractDescription: "Specified the exact REST API structure for the POST /api/v1/appointments/book endpoint to ensure the engineering team had a clear, defect-free target for the sprint.",
+    contractSnippet: `{
+  "endpoint": "POST /api/v1/appointments/book",
+  "headers": {
+    "Authorization": "Bearer {session_token}",
+    "Content-Type": "application/json"
+  },
+  "payload": {
+    "patient_id": "P-983475",
+    "doctor_id": "DOC-2049",
+    "facility_id": "BLR-OLD-AIRPORT",
+    "appointment_type": "IN_PERSON",
+    "slot": {
+      "date": "2026-09-02",
+      "start_time": "14:30:00Z",
+      "duration_minutes": 15
+    }
+  },
+  "expected_response": {
+    "status": 201,
+    "booking_reference": "MNPL-883-XC",
+    "confirmation_status": "CONFIRMED"
+  }
+}`,
+    
+    gherkinFeatureTitle: "Feature: Real-Time Appointment Slot Concurrency Lock",
+    gherkinScenarios: [
+      {
+        title: "Scenario 1: Prevent Double-Booking During Active Checkout (Happy Path)",
+        type: "happy",
+        given: [
+          "the patient selects an available 14:30 slot for DOC-2049",
+          "the patient proceeds to the appointment confirmation screen"
+        ],
+        when: "the system processes the slot selection request",
+        then: [
+          "the system must temporarily lock the 14:30 slot for 10 minutes",
+          "the slot must display as UNAVAILABLE to all other concurrent users",
+          "the patient receives a booking reference number upon confirmation."
+        ]
+      },
+      {
+        title: "Scenario 2: Release Slot Upon Session Timeout (Exception Flow)",
+        type: "exception",
+        given: [
+          "the patient has a locked slot at 14:30",
+          "10 minutes elapse without confirmation"
+        ],
+        when: "the session timeout threshold is reached",
+        then: [
+          "the system must release the lock automatically",
+          "the slot must display as AVAILABLE in the master schedule",
+          "the patient is shown a session expired notification."
+        ]
+      }
+    ],
+    
+    impactMetrics: [
+      { label: "Digital Adoption", value: "High", detail: "Shifted bookings from call center to portal" },
+      { label: "Double-Booking", value: "0%", detail: "Eliminated via 10-min session lock" },
+      { label: "Patient Discovery", value: "Instant", detail: "Optimized specialist search & filters" }
+    ],
+    impactSummary: [
+      "Digital Adoption: Successfully shifted a significant percentage of daily bookings from the manual call center to the automated digital portal.",
+      "Concurrency Resolution: The implementation of the temporary session-lock logic entirely eliminated appointment collisions during high-traffic booking windows.",
+      "Accelerated Patient Discovery: The modernized UI and optimized search filters allowed patients to find relevant specialists and available slots instantly, vastly improving the patient experience."
+    ]
   }
 ];
 
@@ -502,5 +634,32 @@ WHERE created_at >= '2026-01-01'
 GROUP BY event_type, report_month
 ORDER BY report_month DESC;`,
     description: "ClickHouse DDL delivering 80% report speed increase for global telecom platform."
+  },
+  {
+    id: "query-3",
+    name: "Manipal Hospitals Appointment Slot Concurrency Lock Spec",
+    sql: `-- Appointment Slot Concurrency Lock & Availability Query (PostgreSQL)
+-- BA Directive: Enforce 10-minute temporary session lock to prevent double-booking
+
+SELECT 
+    ds.slot_id,
+    ds.doctor_id,
+    ds.facility_id,
+    ds.slot_date,
+    ds.start_time,
+    ds.duration_minutes,
+    CASE 
+        WHEN ds.status = 'LOCKED' 
+             AND ds.locked_at + INTERVAL '10 minutes' > NOW()
+        THEN 'UNAVAILABLE'
+        WHEN ds.status = 'BOOKED' THEN 'BOOKED'
+        ELSE 'AVAILABLE'
+    END AS availability_status
+FROM doctor_slots ds
+WHERE ds.doctor_id = :selected_doctor_id
+  AND ds.facility_id = :selected_facility_id
+  AND ds.slot_date = :selected_date
+ORDER BY ds.start_time ASC;`,
+    description: "Enforces 10-minute concurrency lock on appointment slots to prevent double-booking across multi-branch hospital system."
   }
 ];
