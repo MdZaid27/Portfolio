@@ -7,7 +7,7 @@ import { Download, Menu, X, FileText, ChevronRight } from "lucide-react";
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,6 +15,43 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Scroll-spy: track which section is currently visible
+  useEffect(() => {
+    const sectionIds = [
+      "projects",
+      "skills",
+      "bpmn-visualizer",
+      "sql-playground",
+      "roi-calculator",
+      "experience",
+      "contact",
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            setActiveSection(id);
+            // Update URL hash without scrolling
+            history.replaceState(null, "", `#${id}`);
+          }
+        }
+      },
+      {
+        rootMargin: "-40% 0px -55% 0px",
+        threshold: 0,
+      }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   const navLinks = [
@@ -61,15 +98,22 @@ export default function Navbar() {
 
           {/* Desktop Links */}
           <nav className="hidden lg:flex items-center gap-1 bg-slate-900/60 p-1.5 rounded-full border border-slate-800/80">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-emerald-400 rounded-full hover:bg-slate-800/80 transition-all"
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.href.slice(1);
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all ${
+                    isActive
+                      ? "text-emerald-400 bg-slate-800/90"
+                      : "text-slate-300 hover:text-emerald-400 hover:bg-slate-800/80"
+                  }`}
+                >
+                  {link.name}
+                </a>
+              );
+            })}
           </nav>
 
           {/* Actions */}
@@ -106,17 +150,24 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden bg-slate-950/95 backdrop-blur-xl pt-24 px-6 pb-6 flex flex-col justify-between">
           <nav className="flex flex-col gap-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-4 py-3 text-sm font-medium text-slate-200 border-b border-slate-800/60 hover:text-emerald-400 flex items-center justify-between"
-              >
-                {link.name}
-                <ChevronRight className="w-4 h-4 text-slate-600" />
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.href.slice(1);
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-3 text-sm font-medium border-b border-slate-800/60 flex items-center justify-between ${
+                    isActive
+                      ? "text-emerald-400"
+                      : "text-slate-200 hover:text-emerald-400"
+                  }`}
+                >
+                  {link.name}
+                  <ChevronRight className={`w-4 h-4 ${isActive ? "text-emerald-400" : "text-slate-600"}`} />
+                </a>
+              );
+            })}
           </nav>
           <div className="flex flex-col gap-3 pt-6 border-t border-slate-800">
             <a
